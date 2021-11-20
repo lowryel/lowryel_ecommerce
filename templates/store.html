@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+{% extends 'index.html' %}
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store</title>
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+</head>
+<body>
+    
+    {% block content %}
+        <div class="row">
+            {% for product in products %}
+            <div class="col-lg-4">
+                <img class="thumbnail" src="{{product.imageURL}}" alt="product-placeholder">
+                <div class="box-element product">
+                    <h6><strong>{{product.name}}</strong></h6>
+                    <hr>
+                    <button data-product={{product.id}} data-action="add"" class="btn btn-outline-secondary add-btn update-cart">Add to Cart</button>
+                    <a class="btn btn-outline-success" href="#">View</a>
+                    <h4 style="display: inline-block; float: right;" >${{product.price|floatformat:2}}</h4>
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endblock content %}
+    <img src="{% static './images/Shopping-Cart.png' %}" class="shop-cart" alt="cart">
+</body>
+</html>
