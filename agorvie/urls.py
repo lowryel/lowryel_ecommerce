@@ -13,20 +13,20 @@ Including another URLconf
     1. Import the include() function: from django.conf.urls import url, include
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
-from django.conf.urls import url
+from django.urls import path
 from django.contrib import admin
 from django.conf.urls.static import static
 from django.conf import settings
 from afeapp import views
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^index/', views.index, name='index'),
-    url(r'^store/', views.store, name='store'),
-    url(r'^cart/', views.cart, name='cart'),
-    url(r'^checkout/', views.checkout, name='checkout'),
-    url(r'^update_item/', views.updateItem, name='update_item'),
-    url(r'^process_order/', views.processOrder, name='process_order'),
+    path('admin/', admin.site.urls),
+    path('index/', views.index, name='index'),
+    path('store/', views.store, name='store'),
+    path('cart/', views.cart, name='cart'),
+    path('checkout/', views.checkout, name='checkout'),
+    path('update_item/', views.updateItem, name='update_item'),
+    path('process_order/', views.processOrder, name='process_order'),
 ]
 
 if settings.DEBUG:
