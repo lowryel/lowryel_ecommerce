@@ -1,0 +1,45 @@
+---
+
+- name: "configuration play." 
+  hosts: web
+  user: ubuntu
+  gather_facts: false
+  vars:
+    - ansible_python_interpreter: /usr/bin/python3
+    - ansible_host_key_checking: false
+    - ansible_stdout_callback: yaml
+
+  pre_tasks:
+  - name: "Set Env vars"
+    shell: |
+      touch .env
+      echo NODE_ENV=production >> .env
+      echo VERSION=1 >> .env
+      echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> .env
+      echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> .env
+      echo TYPEORM_HOST=$TYPEORM_HOST >> .env
+      echo TYPEORM_PORT=$TYPEORM_PORT >> .env
+      echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> .env
+      echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> .env
+      echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> .env
+      echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> .env
+      echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> .env
+
+  # Get the environment variables from CircleCI and add to the EC2 instance
+  environment:
+    # Add more env vars here
+    - NODE_ENV: production
+    - ENVIRONMENT: production
+    - TYPEORM_CONNECTION: "{{ lookup('env', 'TYPEORM_CONNECTION')}}"
+    - TYPEORM_HOST: "{{ lookup('env', 'TYPEORM_HOST')}}"
+    - TYPEORM_PORT: 5432
+    - TYPEORM_USERNAME: "{{ lookup('env', 'TYPEORM_USERNAME')}}"
+    - TYPEORM_PASSWORD: "{{ lookup('env', 'TYPEORM_PASSWORD')}}"
+    - TYPEORM_DATABASE: "{{ lookup('env', 'TYPEORM_DATABASE')}}"
+    - TYPEORM_ENTITIES: "{{ lookup('env', 'TYPEORM_ENTITIES')}}"
+    - TYPEORM_MIGRATIONS: "{{ lookup('env', 'TYPEORM_MIGRATIONS')}}"
+    - TYPEORM_MIGRATIONS_DIR: "{{ lookup('env', 'TYPEORM_MIGRATIONS_DIR')}}"
+
+  roles:
+    - deploy
+    - configure-prometheus-node-exporter

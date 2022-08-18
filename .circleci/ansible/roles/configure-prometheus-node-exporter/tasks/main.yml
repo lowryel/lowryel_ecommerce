@@ -1,0 +1,32 @@
+
+- name: "install node exporter."
+  become: true
+  shell: |
+    wget https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+    tar xzf node_exporter-1.0.1.linux-amd64.tar.gz
+
+- name: "move binary to /usr/local/bin."
+  become: true
+  become_user: root
+  become_method: sudo
+  shell: |
+    mv node_exporter-1.0.1.linux-amd64/node_exporter /usr/local/bin/node_exporter
+    chmod +x /usr/local/bin/node_exporter
+    rm -rf node_exporter-1.0.1.linux-amd64
+
+- name: "add node exporter configuration."
+  become: true
+  copy:
+    src: node_exporter.service
+    dest: /etc/systemd/system/node-exporter.service
+
+- name: "enable node_exporter service"
+  become: true
+  become_user: root
+  become_method: sudo
+  shell: |
+    systemctl daemon-reload
+    systemctl enable node-exporter
+    systemctl start node-exporter
+    systemctl status node-exporter
+

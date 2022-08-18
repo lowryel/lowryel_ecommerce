@@ -1,32 +1,17 @@
 # Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Orbs are reusable packages of CircleCI configuration that you may share across projects, enabling you to create encapsulated, parameterized commands, jobs, and executors that can be used across multiple projects.
-# See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
   # The python orb contains a set of prepackaged CircleCI configuration you can use repeatedly in your configuration files
   # Orb commands and jobs help you with common scripting around a language/tool
   # so you dont have to copy and paste it everywhere.
-  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/python
   python: circleci/python@1.5.0
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  build-and-test: # This is the name of the job, feel free to change it to better match what you're trying to do!
-    # These next lines defines a Docker executors: https://circleci.com/docs/2.0/executor-types/
-    # You can specify an image from Dockerhub or use one of the convenience images from CircleCI's Developer Hub
-    # A list of available CircleCI Docker convenience images are available here: https://circleci.com/developer/images/image/cimg/python
-    # The executor is the environment in which the steps below will be executed - below will use a python 3.10.2 container
-    # Change the version below to your required version of python
+  build-and-test: 
     docker:
       - image: cimg/python:3.8
-    # Checkout the code as the first step. This is a dedicated CircleCI step.
-    # The python orb's install-packages step will install the dependencies from a Pipfile via Pipenv by default.
-    # Here we're making sure we use just use the system-wide pip. By default it uses the project root's requirements.txt.
-    # Then run your tests!
-    # CircleCI will report the results back to your VCS provider.
+
     steps:
       - checkout
       - python/install-packages:
@@ -35,13 +20,93 @@ jobs:
           pip-dependency-file: requirements.txt  # if you have a different name for your requirements file, maybe one that combines your runtime and test requirements.
       - run:
           name: Run tests
-          # This assumes pytest is installed via the install-package step above
           command: python manage.py test
 
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy --template-file .circleci/files/backend.yml \
+            --stack-name "django-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
+            --tags project=django
+
+      - run:
+          name: Update inventory with backend ip
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text >> .circleci/ansible/inventory.txt
+
+      - run:
+          name: Check for Ip
+          command:
+            cat .circleci/ansible/inventory.txt
+
+      - persist_to_workspace:
+          root: .circleci/ansible
+          paths:
+            - inventory.txt
+
+  configure-infrastructure:
+    docker:
+      - image: python:3.10.5-alpine3.16
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .circleci/ansible
+      - add_ssh_keys:
+          fingerprints: ["d5:b9:73:ee:dc:25:b5:34:5a:23:f1:ae:08:5a:2a:21"]
+      - run: apk add --update ansible # Install ansible
+      - run:
+          name: Install dependencies (openssh)
+          command: |
+            apk add --update openssh # Install openssh and git
+            apk add --update git # Install git
+
+      - run:
+          name: Install dependencies (awscli, tar and gzip)
+          command: |
+            apk --no-cache add py-pip
+            pip install awscli
+            apk add --update tar gzip
+
+      - run:
+          name: Run your playbook to configure server
+          command: |
+            cd .circleci/ansible
+            cat inventory.txt
+            ansible-playbook -i inventory.txt configure-server.yml
+
+      - run:
+          name: Install dependences
+          command: 
+            sudo apt update & sudo apt upgrade    
+            sudo apt install python3-pip
+            python3 -m pip install --upgrade pip
+            pip install django==4.1
+            pip install -r requirements.txt
+
+      - run:
+          name: Copy files and folders
+          command: |
+            scp -i *.pem lowryel_ecommerce.zip ubuntu@public_ip:~/
+            sudo apt install unzip
+            unzip source_directory.zip
+
+
+
 # Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  sample: # This is the name of the workflow, feel free to change it to better match your workflow.
+  my-workflow: # This is the name of the workflow, feel free to change it to better match your workflow.
     # Inside the workflow, you define the jobs you want to run.
     jobs:
       - build-and-test
+      - deploy-infrastructure:
+          requires:
+            - build-and-test

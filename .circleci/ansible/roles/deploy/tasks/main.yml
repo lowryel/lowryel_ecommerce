@@ -1,0 +1,44 @@
+
+- name: Create app directory
+  file:
+    path: $HOME/web
+    state: directory
+
+- name: "Copy files to server"
+  ansible.builtin.copy:
+    src: "files/artifact.tar.gz"
+    dest: "$HOME/artifact.tar.gz"
+    follow: yes
+
+- name: "install dependencies."
+  become: true
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: latest
+    update_cache: yes
+
+- name: "Install Dependencies"
+  become: true
+  shell: |
+    tar -xvf artifact.tar.gz .
+    rm artifact.tar.gz
+    npm install
+
+# - name: Create app directory
+#   file:
+#     path: $HOME/web
+#     state: directory
+
+# - name: extract artifact
+#   become: true
+#   unarchive:
+#     src: files/artifact.tar.gz 
+#     dest: .
+
+- name: start app
+  become: true
+  shell: |
+    sudo pm2 stop default
+    sudo pm2 start npm -- run start

@@ -1,0 +1,34 @@
+
+- name: "install alert manager."
+  become: true
+  shell: |
+    wget https://github.com/prometheus/alertmanager/releases/download/v0.23.0/alertmanager-0.23.0.linux-amd64.tar.gz
+    tar xvzf alertmanager-0.23.0.linux-amd64.tar.gz
+
+- name: "move binary to /usr/local/bin."
+  become: true
+  become_user: root
+  become_method: sudo
+  shell: |
+    mv alertmanager-0.21.0.linux-amd64/alertmanager /usr/local/bin
+    mv alertmanager-0.21.0.linux-amd64/amtool /usr/local/bin/
+    chmod +x /usr/local/bin/alertmanager
+    rm -rf alertmanager-0.21.0.linux-amd64
+    
+- name: "add alert manager configuration"
+  become: true
+  copy:
+    src: alertmanager.service
+    dest: /etc/systemd/system/alertmanager.service
+
+
+- name: "enable alert manager service"
+  become: true
+  become_user: root
+  become_method: sudo
+  shell: |
+    systemctl daemon-reload
+    systemctl enable alertmanager
+    systemctl start alertmanager
+
+
