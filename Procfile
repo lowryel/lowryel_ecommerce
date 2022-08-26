@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn {afeapp}.wsgi
+web: python manage.py migrate && gunicorn afeapp.wsgi
