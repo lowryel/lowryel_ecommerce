@@ -1,1 +1,1 @@
-python manage.py migrate && gunicorn {app_name}.wsgi
+python manage.py migrate && gunicorn {afeapp}.wsgi
